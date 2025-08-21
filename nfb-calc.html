@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced LV Panel Sizing App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .form-select, .form-input {
+            background-color: #ffffff;
+            color: #111827;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .form-input.error {
+            border-color: #ef4444; /* red-500 */
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .table-auto th {
+            background-color: #f9fafb;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .table-auto td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .btn {
+            border-radius: 0.5rem;
+            font-weight: 600;
+            padding: 0.625rem 1.25rem;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary { background-color: #2563eb; color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+        .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .btn-secondary { background-color: #4ade80; color: white; } /* Green */
+        .btn-secondary:hover { background-color: #22c55e; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
+            background: #2563eb; cursor: pointer; border-radius: 50%;
+        }
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+            z-index: 10;
+        }
+        .collapsible-header { cursor: pointer; }
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Enhanced LV Panel Sizing App</h1>
+            <p class="text-gray-500 mt-2 text-lg">Advanced UI/UX & Electrical Calculations</p>
+        </header>
+
+        <!-- Main Settings -->
+        <div class="card p-6 rounded-xl mb-8">
+            <h2 class="text-2xl font-semibold mb-4 border-b border-gray-200 pb-3 text-gray-900">Global Settings</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 pt-2">
+                 <div>
+                    <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Component Brand</label>
+                    <select id="brand" class="form-select w-full">
+                        <option value="MITSUBISHI">Mitsubishi</option>
+                        <option value="CHINT">CHINT</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="voltage-3ph" class="block text-sm font-medium text-gray-700 mb-1">3-Phase Voltage (V)</label>
+                    <input type="number" id="voltage-3ph" value="380" class="form-input w-full">
+                    <p id="voltage-3ph-error" class="error-message hidden"></p>
+                </div>
+                <div>
+                    <label for="voltage-1ph" class="block text-sm font-medium text-gray-700 mb-1">1-Phase Voltage (V)</label>
+                    <input type="number" id="voltage-1ph" value="220" class="form-input w-full">
+                    <p id="voltage-1ph-error" class="error-message hidden"></p>
+                </div>
+                <div>
+                    <label for="pf" class="block text-sm font-medium text-gray-700 mb-1">Default Power Factor (PF)</label>
+                    <input type="number" id="pf" step="0.01" value="0.85" class="form-input w-full">
+                    <p id="pf-error" class="error-message hidden"></p>
+                </div>
+                
+                <!-- TIDIED UP SLIDER SECTION -->
+                <div class="lg:col-span-3 space-y-6 border-t pt-6 mt-2">
+                    <!-- NFB Factors Group -->
+                    <div>
+                        <h3 class="text-md font-semibold text-gray-800 mb-3">NFB (Breaker) Sizing Factors</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">
+                            <div>
+                                <label for="nfb-factor-dol" class="block text-sm font-medium text-gray-700 mb-2">DOL Method: <span id="nfb-factor-dol-value" class="font-bold text-blue-600">2.50x</span></label>
+                                <input type="range" id="nfb-factor-dol" min="1.0" max="3.0" value="2.5" step="0.05" oninput="document.getElementById('nfb-factor-dol-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                            <div>
+                                <label for="nfb-factor-sd" class="block text-sm font-medium text-gray-700 mb-2">Star-Delta Method: <span id="nfb-factor-sd-value" class="font-bold text-blue-600">2.00x</span></label>
+                                <input type="range" id="nfb-factor-sd" min="1.0" max="3.0" value="2.0" step="0.05" oninput="document.getElementById('nfb-factor-sd-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                             <div>
+                                <label for="nfb-factor-vfd" class="block text-sm font-medium text-gray-700 mb-2">VFD Method: <span id="nfb-factor-vfd-value" class="font-bold text-blue-600">1.50x</span></label>
+                                <input type="range" id="nfb-factor-vfd" min="1.0" max="2.0" value="1.5" step="0.05" oninput="document.getElementById('nfb-factor-vfd-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- General Factors Group -->
+                    <div>
+                        <h3 class="text-md font-semibold text-gray-800 mb-3">General Sizing Factors</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">
+                            <div>
+                                <label for="cable-factor" class="block text-sm font-medium text-gray-700 mb-2">Cable Safety: <span id="cable-factor-value" class="font-bold text-blue-600">1.25x</span></label>
+                                <input type="range" id="cable-factor" min="1.1" max="1.5" value="1.25" step="0.01" oninput="document.getElementById('cable-factor-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                            <div>
+                                <label for="flc-factor" class="block text-sm font-medium text-gray-700 mb-2">Load Sizing: <span id="flc-factor-value" class="font-bold text-blue-600">1.00x</span></label>
+                                <input type="range" id="flc-factor" min="1.0" max="1.5" value="1.0" step="0.05" oninput="document.getElementById('flc-factor-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                            <div>
+                                <label for="main-breaker-factor" class="block text-sm font-medium text-gray-700 mb-2">Main Breaker (Motor): <span id="main-breaker-factor-value" class="font-bold text-blue-600">2.50x</span></label>
+                                <input type="range" id="main-breaker-factor" min="1.5" max="4.0" value="2.5" step="0.1" oninput="document.getElementById('main-breaker-factor-value').textContent = parseFloat(this.value).toFixed(2) + 'x'">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loads Container -->
+        <div class="card p-6 rounded-xl mb-8">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+                <h2 class="text-2xl font-semibold text-gray-900">Loads Configuration</h2>
+                <button id="add-load-btn" class="btn btn-secondary flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Add Load
+                </button>
+            </div>
+            <div id="loads-container" class="space-y-4"></div>
+        </div>
+
+        <!-- Floating Action Button -->
+        <button id="calculate-btn" class="btn btn-primary fab" title="Calculate Sizing">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+        </button>
+
+        <!-- Results -->
+        <div id="results-container" class="hidden space-y-8">
+            <div class="card p-6 rounded-xl">
+                <h2 class="text-2xl font-semibold mb-4 border-b pb-3 text-gray-900">Results Summary</h2>
+                <div id="summary-card" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center pt-2"></div>
+            </div>
+
+            <div class="card p-6 rounded-xl">
+                <div class="collapsible-header flex justify-between items-center" onclick="toggleCollapse(this)">
+                    <h2 class="text-2xl font-semibold text-gray-900">Main Incoming Supply</h2>
+                    <span class="transform transition-transform duration-300">&#9660;</span>
+                </div>
+                <div class="collapsible-content mt-4 pt-4 border-t">
+                    <div id="main-breaker-result" class="text-base space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="card p-6 rounded-xl">
+                 <div class="collapsible-header flex justify-between items-center" onclick="toggleCollapse(this)">
+                    <h2 class="text-2xl font-semibold text-gray-900">Component & Cable Schedule</h2>
+                    <span class="transform transition-transform duration-300">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="flex flex-col sm:flex-row justify-end sm:items-center my-4 gap-4">
+                        <button id="export-csv-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white flex items-center justify-center">Export CSV</button>
+                        <button id="export-pdf-btn" class="btn bg-red-600 hover:bg-red-700 text-white flex items-center justify-center">Export PDF</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left table-auto">
+                            <thead>
+                                <tr>
+                                    <th>Load #</th><th>Description</th><th>Power</th><th>FLC (A)</th>
+                                    <th>NFB/MCCB</th><th>Contactor</th><th>TOR</th><th>Cable Size</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody" class="text-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- DATABASE OF COMPONENTS ---
+    const PARTS_DB = {
+        MITSUBISHI: {
+            NFB: [
+                { model: 'NF30-CS 3P 5A', rating: 5 }, { model: 'NF30-CS 3P 10A', rating: 10 }, { model: 'NF30-CS 3P 15A', rating: 15 }, 
+                { model: 'NF30-CS 3P 20A', rating: 20 }, { model: 'NF30-CS 3P 30A', rating: 30 }, { model: 'NF63-CV 3P 40A', rating: 40 }, 
+                { model: 'NF63-CV 3P 50A', rating: 50 }, { model: 'NF63-CV 3P 63A', rating: 63 }, { model: 'NF125-CV 3P 80A', rating: 80 }, 
+                { model: 'NF125-CV 3P 100A', rating: 100 }, { model: 'NF125-CV 3P 125A', rating: 125 }, { model: 'NF250-CV 3P 150A', rating: 150 }, 
+                { model: 'NF250-CV 3P 175A', rating: 175 }, { model: 'NF250-CV 3P 200A', rating: 200 }, { model: 'NF250-CV 3P 225A', rating: 225 }, 
+                { model: 'NF250-CV 3P 250A', rating: 250 }, { model: 'NF400-CW 3P 300A', rating: 300 }, { model: 'NF400-CW 3P 350A', rating: 350 }, 
+                { model: 'NF400-CW 3P 400A', rating: 400 }, { model: 'NF630-CW 3P 500A', rating: 500 }, { model: 'NF630-CW 3P 630A', rating: 630 }, 
+                { model: 'NF800-CEW 3P 800A', rating: 800 }
+            ],
+            CONTACTOR: [
+                { model: 'S-T10', rating: 12 }, { model: 'S-T12', rating: 18 }, { model: 'S-T20', rating: 24 }, { model: 'S-T21', rating: 32 }, 
+                { model: 'S-T25', rating: 38 }, { model: 'S-T35', rating: 50 }, { model: 'S-T50', rating: 65 }, { model: 'S-T65', rating: 80 }, 
+                { model: 'S-T80', rating: 100 }, { model: 'S-T100', rating: 125 }
+            ],
+            TOR: [
+                { model: 'TH-T18(0.17A)', min: 0.13, max: 0.21 }, { model: 'TH-T18(0.28A)', min: 0.22, max: 0.34 }, { model: 'TH-T18(0.45A)', min: 0.36, max: 0.54 },
+                { model: 'TH-T18(0.7A)', min: 0.55, max: 0.85 }, { model: 'TH-T18(1.1A)', min: 0.9, max: 1.3 }, { model: 'TH-T18(1.7A)', min: 1.4, max: 2 },
+                { model: 'TH-T18(2.5A)', min: 2, max: 3 }, { model: 'TH-T18(4A)', min: 3.2, max: 4.8 }, { model: 'TH-T18(6.6A)', min: 5.2, max: 8 },
+                { model: 'TH-T18(9A)', min: 7, max: 11 }, { model: 'TH-T18(13A)', min: 10, max: 16 }, { model: 'TH-T18(18A)', min: 14, max: 22 },
+                { model: 'TH-T25(24A)', min: 18, max: 30 }, { model: 'TH-T50(42A)', min: 34, max: 50 }, { model: 'TH-T65(65A)', min: 50, max: 80 }, 
+                { model: 'TH-T100(100A)', min: 80, max: 120 }
+            ]
+        },
+        CHINT: {
+            NFB: [
+                { model: 'NXB-63 3P 6A', rating: 6 }, { model: 'NXB-63 3P 10A', rating: 10 }, { model: 'NXB-63 3P 16A', rating: 16 },
+                { model: 'NXB-63 3P 20A', rating: 20 }, { model: 'NXB-63 3P 25A', rating: 25 }, { model: 'NXB-63 3P 32A', rating: 32 },
+                { model: 'NXB-63 3P 40A', rating: 40 }, { model: 'NXB-63 3P 50A', rating: 50 }, { model: 'NXB-63 3P 63A', rating: 63 },
+                { model: 'NM1-125S/3300 80A', rating: 80 }, { model: 'NM1-125S/3300 100A', rating: 100 }, { model: 'NM1-125S/3300 125A', rating: 125 },
+                { model: 'NM8N-250S 160A', rating: 160 }, { model: 'NM8N-250S 200A', rating: 200 }, { model: 'NM8N-250S 250A', rating: 250 },
+                { model: 'NM8N-400S 315A', rating: 315 }, { model: 'NM8N-400S 400A', rating: 400 }, { model: 'NM8N-630S 500A', rating: 500 },
+                { model: 'NM8N-630S 630A', rating: 630 }, { model: 'NM8N-800S 800A', rating: 800 }
+            ],
+            CONTACTOR: [
+                { model: 'NC1-0910', rating: 9 }, { model: 'NC1-1210', rating: 12 }, { model: 'NC1-1810', rating: 18 }, 
+                { model: 'NC1-2510', rating: 25 }, { model: 'NC1-3210', rating: 32 }, { model: 'NC1-4011', rating: 40 },
+                { model: 'NC1-5011', rating: 50 }, { model: 'NC1-6511', rating: 65 }, { model: 'NC1-8011', rating: 80 },
+                { model: 'NC1-9511', rating: 95 }, { model: 'NC2-115', rating: 115 }
+            ],
+            TOR: [
+                { model: 'NR2-25 (0.16A)', min: 0.1, max: 0.16 }, { model: 'NR2-25 (0.25A)', min: 0.16, max: 0.25 }, { model: 'NR2-25 (0.4A)', min: 0.25, max: 0.4 },
+                { model: 'NR2-25 (0.63A)', min: 0.4, max: 0.63 }, { model: 'NR2-25 (1A)', min: 0.63, max: 1 }, { model: 'NR2-25 (1.6A)', min: 1, max: 1.6 },
+                { model: 'NR2-25 (2.5A)', min: 1.6, max: 2.5 }, { model: 'NR2-25 (4A)', min: 2.5, max: 4 }, { model: 'NR2-25 (6A)', min: 4, max: 6 },
+                { model: 'NR2-25 (8A)', min: 5.5, max: 8 }, { model: 'NR2-25 (10A)', min: 7, max: 10 }, { model: 'NR2-25 (13A)', min: 9, max: 13 },
+                { model: 'NR2-25 (18A)', min: 12, max: 18 }, { model: 'NR2-25 (25A)', min: 17, max: 25 }, { model: 'NR2-36 (32A)', min: 23, max: 32 },
+                { model: 'NR2-93 (50A)', min: 37, max: 50 }, { model: 'NR2-93 (65A)', min: 48, max: 65 }, { model: 'NR2-93 (80A)', min: 63, max: 80 },
+                { model: 'NR2-93 (93A)', min: 80, max: 93 }
+            ]
+        },
+        CABLE: [
+            { size: '0.75', iz: 10, cores: '2C+E' }, { size: '1.5', iz: 18, cores: '2C+E' }, { size: '2.5', iz: 25, cores: '2C+E' }, 
+            { size: '4', iz: 34, cores: '2C+E' }, { size: '6', iz: 44, cores: '2C+E' }, { size: '10', iz: 61, cores: '2C+E' }, 
+            { size: '16', iz: 82, cores: '2C+E' }, { size: '25', iz: 108, cores: '3C+E' }, { size: '35', iz: 135, cores: '3C+E' }, 
+            { size: '50', iz: 168, cores: '3C+E' }, { size: '70', iz: 217, cores: '3C+E' }, { size: '95', iz: 269, cores: '3C+E' }, 
+            { size: '120', iz: 314, cores: '3C+E' }, { size: '150', iz: 363, cores: '3C+E' }, { size: '185', iz: 419, cores: '3C+E' }, 
+            { size: '240', iz: 505, cores: '3C+E' }
+        ]
+    };
+
+    const { jsPDF } = window.jspdf;
+
+    const addLoadBtn = document.getElementById('add-load-btn');
+    const loadsContainer = document.getElementById('loads-container');
+    const calculateBtn = document.getElementById('calculate-btn');
+    const resultsContainer = document.getElementById('results-container');
+    const resultsTbody = document.getElementById('results-tbody');
+    const summaryCard = document.getElementById('summary-card');
+    const mainBreakerResult = document.getElementById('main-breaker-result');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+    let calculationResults = null;
+
+    addLoadBtn.addEventListener('click', addLoad);
+    calculateBtn.addEventListener('click', calculateSizing);
+    exportCsvBtn.addEventListener('click', exportToCsv);
+    exportPdfBtn.addEventListener('click', exportToPdf);
+
+    function addLoad() {
+        const loadId = `load-${Date.now()}`;
+        const loadTemplate = `
+            <div id="${loadId}" class="load-card card p-4 relative">
+                <div class="collapsible-header flex justify-between items-center" onclick="toggleCollapse(this)">
+                    <h3 class="load-title text-lg font-semibold text-gray-800">New Load</h3>
+                    <div class="flex items-center">
+                        <button class="btn !p-0 h-8 w-8 !rounded-full mr-2" onclick="togglePhase(event, '${loadId}')">
+                            <span class="phase-toggle bg-blue-500 text-white rounded-full px-2 py-1 text-xs">3Ø</span>
+                        </button>
+                        <span class="transform transition-transform duration-300">&#9660;</span>
+                    </div>
+                </div>
+                <div class="collapsible-content mt-4 pt-4 border-t">
+                    <button class="absolute top-3 right-3 btn btn-danger h-8 w-8 !p-0 flex items-center justify-center !rounded-full" onclick="removeLoad(event, '${loadId}')">&times;</button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <input type="hidden" id="phase-${loadId}" value="3">
+                        <div>
+                            <label class="block text-sm font-medium">Description</label>
+                            <input type="text" id="desc-${loadId}" class="form-input w-full" placeholder="e.g. Conveyor Motor" oninput="updateLoadTitle(this, '${loadId}')">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Load Type</label>
+                            <select id="type-${loadId}" class="form-select w-full" onchange="handleTypeChange('${loadId}')">
+                                <option value="motor">Motor</option>
+                                <option value="transformer">Transformer</option>
+                                <option value="heater">Heater</option>
+                                <option value="lighting">Lighting</option>
+                                <option value="general">General Power</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label id="power-label-${loadId}" class="block text-sm font-medium">Power (kW)</label>
+                            <input type="number" id="power-${loadId}" value="0.75" step="0.01" class="form-input w-full">
+                        </div>
+                        <div id="motor-options-${loadId}" class="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium">Start Method</label>
+                                <select id="connection-${loadId}" class="form-select w-full">
+                                    <option value="dol">Direct On-Line (DOL)</option>
+                                    <option value="star-delta">Star-Delta</option>
+                                    <option value="vfd">Inverter (VFD)</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium">Motor Efficiency (%)</label>
+                                <input type="number" id="efficiency-${loadId}" value="85" step="1" class="form-input w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        loadsContainer.insertAdjacentHTML('beforeend', loadTemplate);
+        
+        const newLoadCard = document.getElementById(loadId);
+        const newLoadHeader = newLoadCard.querySelector('.collapsible-header');
+        toggleCollapse(newLoadHeader);
+        
+        renumberLoads();
+    }
+
+    function removeLoad(event, loadId) {
+        event.stopPropagation();
+        document.getElementById(loadId)?.remove();
+        renumberLoads();
+        if (loadsContainer.children.length === 0) {
+            resultsContainer.classList.add('hidden');
+        }
+    }
+
+    function renumberLoads() {
+        const loadCards = loadsContainer.querySelectorAll('.load-card');
+        loadCards.forEach((card, index) => {
+            const loadNumber = index + 1;
+            card.dataset.loadNumber = loadNumber;
+            updateLoadTitle(card.querySelector('input[id^="desc-"]'), card.id);
+        });
+    }
+
+    function updateLoadTitle(inputElement, loadId) {
+        const card = document.getElementById(loadId);
+        const title = card.querySelector('.load-title');
+        const loadNumber = card.dataset.loadNumber;
+        const defaultText = `Load #${loadNumber}`;
+        title.textContent = inputElement && inputElement.value ? `${loadNumber}: ${inputElement.value}` : defaultText;
+    }
+
+    function toggleCollapse(headerElement) {
+        const content = headerElement.nextElementSibling;
+        const arrow = headerElement.querySelector('span');
+        if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+            content.style.maxHeight = null;
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+            arrow.style.transform = 'rotate(180deg)';
+        }
+    }
+    
+    function togglePhase(event, loadId) {
+        event.stopPropagation();
+        const phaseInput = document.getElementById(`phase-${loadId}`);
+        const phaseToggle = event.currentTarget.querySelector('.phase-toggle');
+        const typeSelect = document.getElementById(`type-${loadId}`);
+        if (typeSelect.value === 'transformer') return;
+
+        if (phaseInput.value === '3') {
+            phaseInput.value = '1';
+            phaseToggle.textContent = '1Ø';
+            phaseToggle.classList.replace('bg-blue-500', 'bg-purple-500');
+        } else {
+            phaseInput.value = '3';
+            phaseToggle.textContent = '3Ø';
+            phaseToggle.classList.replace('bg-purple-500', 'bg-blue-500');
+        }
+    }
+
+    function handleTypeChange(loadId) {
+        const type = document.getElementById(`type-${loadId}`).value;
+        const motorOptions = document.getElementById(`motor-options-${loadId}`);
+        const powerLabel = document.getElementById(`power-label-${loadId}`);
+        const phaseInput = document.getElementById(`phase-${loadId}`);
+        const phaseToggle = document.querySelector(`#${loadId} .phase-toggle`);
+
+        motorOptions.style.display = (type === 'motor') ? 'grid' : 'none';
+        
+        if (type === 'transformer') {
+            powerLabel.textContent = 'Power (kVA)';
+            phaseInput.value = '3';
+            phaseToggle.textContent = '3Ø';
+            phaseToggle.classList.replace('bg-purple-500', 'bg-blue-500');
+        } else {
+            powerLabel.textContent = 'Power (kW)';
+        }
+    }
+
+    function validateInput(id, min, max, name) {
+        const input = document.getElementById(id);
+        const errorEl = document.getElementById(`${id}-error`);
+        const value = parseFloat(input.value);
+        if (isNaN(value) || value < min || value > max) {
+            errorEl.textContent = `${name} must be between ${min} and ${max}.`;
+            errorEl.classList.remove('hidden');
+            input.classList.add('error');
+            return false;
+        }
+        errorEl.classList.add('hidden');
+        input.classList.remove('error');
+        return true;
+    }
+
+    const findNextSizeUp = (database, requiredValue, key = 'rating') => {
+        if (!database) return { model: 'N/A', rating: 0 };
+        for (const item of database) {
+            if (item[key] >= requiredValue) return item;
+        }
+        return database[database.length - 1];
+    };
+
+    const findTor = (database, flc) => {
+        if (!database) return { model: 'N/A' };
+        for (const item of database) {
+            if (flc >= item.min && flc <= item.max) return item;
+        }
+        return { model: 'Check Manually' };
+    };
+
+    function calculateSizing() {
+        const isV3Valid = validateInput('voltage-3ph', 1, 1000, '3-Phase Voltage');
+        const isV1Valid = validateInput('voltage-1ph', 1, 1000, '1-Phase Voltage');
+        const isPfValid = validateInput('pf', 0.1, 1, 'Power Factor');
+        if (!isV3Valid || !isV1Valid || !isPfValid || loadsContainer.children.length === 0) {
+            if (loadsContainer.children.length === 0) alert("Please add at least one load before calculating.");
+            return;
+        }
+
+        const brand = document.getElementById('brand').value;
+        const voltage3Ph = parseFloat(document.getElementById('voltage-3ph').value);
+        const voltage1Ph = parseFloat(document.getElementById('voltage-1ph').value);
+        const defaultPf = parseFloat(document.getElementById('pf').value);
+        
+        const nfbFactorDol = parseFloat(document.getElementById('nfb-factor-dol').value);
+        const nfbFactorSd = parseFloat(document.getElementById('nfb-factor-sd').value);
+        const nfbFactorVfd = parseFloat(document.getElementById('nfb-factor-vfd').value);
+        const cableSafetyFactor = parseFloat(document.getElementById('cable-factor').value);
+        const flcSafetyFactor = parseFloat(document.getElementById('flc-factor').value);
+        const mainBreakerMotorFactor = parseFloat(document.getElementById('main-breaker-factor').value);
+        
+        const parts = PARTS_DB[brand];
+        let resultsData = [];
+        let totalKVA = 0;
+        let largestMotorFLC = 0;
+        let isValid = true;
+
+        for (const loadEl of loadsContainer.children) {
+            const loadId = loadEl.id;
+            const descInput = document.getElementById(`desc-${loadId}`);
+            const powerInput = document.getElementById(`power-${loadId}`);
+            const power = parseFloat(powerInput.value);
+            
+            if (isNaN(power) || power < 0) {
+                alert(`Please enter a valid, non-negative power for "${descInput.value || 'Load #' + loadEl.dataset.loadNumber}".`);
+                powerInput.classList.add('error');
+                powerInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                isValid = false;
+                break;
+            } else {
+                powerInput.classList.remove('error');
+            }
+
+            const phase = document.getElementById(`phase-${loadId}`).value;
+            const type = document.getElementById(`type-${loadId}`).value;
+            const desc = descInput.value || `${type} Load #${loadEl.dataset.loadNumber}`;
+            
+            let flc = 0, kva = 0, pf = defaultPf, efficiency = 1, powerDisplay = `${power.toFixed(2)} kW`;
+            
+            if (type === 'transformer') {
+                kva = power;
+                flc = (kva * 1000) / (Math.sqrt(3) * voltage3Ph);
+                powerDisplay = `${kva.toFixed(2)} kVA`;
+            } else {
+                if (type === 'motor') {
+                    efficiency = parseFloat(document.getElementById(`efficiency-${loadId}`).value) / 100 || 0.85;
+                }
+                kva = (power / efficiency) / pf;
+                if (phase === '3') {
+                    flc = (power * 1000) / (Math.sqrt(3) * voltage3Ph * pf * efficiency);
+                } else {
+                    flc = (power * 1000) / (voltage1Ph * pf * efficiency);
+                }
+            }
+
+            if (type === 'motor' && phase === '3') {
+                if (flc > largestMotorFLC) largestMotorFLC = flc;
+            }
+            totalKVA += kva;
+            
+            const sizingFlc = flc * flcSafetyFactor;
+
+            let nfbFactor = 1.25;
+            let contactorDisplay = 'N/A', torDisplay = 'N/A', torCurrent = sizingFlc;
+
+            if (type === 'motor') {
+                const connection = document.getElementById(`connection-${loadId}`).value;
+                let torRequired = true;
+                switch (connection) {
+                    case 'dol':
+                        nfbFactor = nfbFactorDol;
+                        const dolContactor = findNextSizeUp(parts.CONTACTOR, sizingFlc);
+                        contactorDisplay = dolContactor.model;
+                        break;
+                    case 'star-delta':
+                        nfbFactor = nfbFactorSd;
+                        torCurrent = sizingFlc * 0.58;
+                        const mainDeltaContactor = findNextSizeUp(parts.CONTACTOR, sizingFlc * 0.58);
+                        const starContactor = findNextSizeUp(parts.CONTACTOR, sizingFlc * 0.33);
+                        contactorDisplay = `Main/Δ: ${mainDeltaContactor.model}, Star: ${starContactor.model}`;
+                        break;
+                    case 'vfd':
+                        nfbFactor = nfbFactorVfd;
+                        torRequired = false;
+                        const vfdContactor = findNextSizeUp(parts.CONTACTOR, sizingFlc);
+                        contactorDisplay = vfdContactor.model;
+                        break;
+                }
+                if (torRequired) {
+                    const tor = findTor(parts.TOR, torCurrent);
+                    torDisplay = `${tor.model} (set: ${torCurrent.toFixed(2)}A)`;
+                }
+            }
+            
+            const requiredNfbRating = sizingFlc * nfbFactor;
+            const requiredCableAmpacity = sizingFlc * cableSafetyFactor;
+            const selectedNfb = findNextSizeUp(parts.NFB, requiredNfbRating);
+            const selectedCable = findNextSizeUp(PARTS_DB.CABLE, requiredCableAmpacity, 'iz');
+            const cableCores = phase === '3' ? '3C+E' : selectedCable.cores;
+
+            resultsData.push({
+                loadNumber: loadEl.dataset.loadNumber, description: desc, power: powerDisplay,
+                flc: flc.toFixed(2),
+                nfb: selectedNfb.model, contactor: contactorDisplay,
+                tor: torDisplay, cable: `${selectedCable.size}mm² (${cableCores})`
+            });
+        }
+        
+        if (!isValid) return;
+
+        const totalFLC = (totalKVA * 1000) / (Math.sqrt(3) * voltage3Ph);
+        const otherLoadsFLC = totalFLC - largestMotorFLC;
+        const mainBreakerCalcCurrent = (largestMotorFLC * mainBreakerMotorFactor) + otherLoadsFLC;
+        const mainBreaker = findNextSizeUp(parts.NFB, mainBreakerCalcCurrent);
+        const mainCable = findNextSizeUp(PARTS_DB.CABLE, mainBreaker.rating, 'iz');
+        
+        calculationResults = {
+            schedule: resultsData,
+            mainSupply: {
+                totalKVA, totalFLC, largestMotorFLC, otherLoadsFLC,
+                calcCurrent: mainBreakerCalcCurrent, breaker: mainBreaker, cable: mainCable,
+                mainBreakerMotorFactor: mainBreakerMotorFactor
+            }
+        };
+
+        displayResults(calculationResults);
+    }
+
+    function displayResults(results) {
+        resultsTbody.innerHTML = '';
+        results.schedule.forEach(row => {
+            resultsTbody.innerHTML += `
+                <tr>
+                    <td>${row.loadNumber}</td><td>${row.description}</td><td>${row.power}</td><td>${row.flc}</td>
+                    <td>${row.nfb}</td><td>${row.contactor}</td><td>${row.tor}</td><td>${row.cable}</td>
+                </tr>`;
+        });
+
+        const main = results.mainSupply;
+        summaryCard.innerHTML = `
+            <div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">Total kVA</p><p class="text-2xl font-bold">${main.totalKVA.toFixed(2)}</p></div>
+            <div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">Total FLC</p><p class="text-2xl font-bold">${main.totalFLC.toFixed(2)} A</p></div>
+            <div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">Main Breaker (Calc.)</p><p class="text-2xl font-bold text-blue-600">${main.calcCurrent.toFixed(2)} A</p></div>
+            <div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500">Selected Breaker</p><p class="text-xl font-bold text-green-600">${main.breaker.model}</p></div>
+        `;
+        
+        mainBreakerResult.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                    <h4 class="font-semibold text-gray-800">Calculation Breakdown:</h4>
+                    <p class="text-sm text-gray-600">Formula: (Largest Motor FLC &times; ${main.mainBreakerMotorFactor.toFixed(2)}) + Other Loads FLC</p>
+                    <p class="text-sm text-gray-600">(${main.largestMotorFLC.toFixed(2)}A &times; ${main.mainBreakerMotorFactor.toFixed(2)}) + ${main.otherLoadsFLC.toFixed(2)}A = <span class="font-bold">${main.calcCurrent.toFixed(2)}A</span></p>
+                </div>
+                <div class="border-t md:border-t-0 md:border-l border-gray-200 pl-0 md:pl-8 pt-4 md:pt-0">
+                    <h4 class="font-semibold text-gray-800">Recommendations:</h4>
+                    <p>Main Breaker: <span class="font-bold text-lg text-blue-600">${main.breaker.model}</span></p>
+                    <p>Main Cable: <span class="font-bold text-lg text-blue-600">${main.cable.size}mm² (4C)</span></p>
+                </div>
+            </div>
+        `;
+
+        resultsContainer.classList.remove('hidden');
+        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function exportToCsv() {
+        if (!calculationResults) return;
+        let csv = "Load #,Description,Power,FLC (A),NFB/MCCB,Contactor,TOR,Cable Size\n";
+        calculationResults.schedule.forEach(r => {
+            csv += `${r.loadNumber},"${r.description}",${r.power},${r.flc},${r.nfb},${r.contactor},${r.tor},${r.cable}\n`;
+        });
+        const link = document.createElement("a");
+        link.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+        link.download = "panel_sizing.csv";
+        link.click();
+    }
+
+    function exportToPdf() {
+        if (!calculationResults) return;
+        const doc = new jsPDF();
+        doc.text("LV Panel Sizing Report", 14, 16);
+        doc.autoTable({
+            startY: 22,
+            head: [['#', 'Description', 'Power', 'FLC', 'NFB/MCCB', 'Contactor', 'TOR', 'Cable']],
+            body: calculationResults.schedule.map(r => [r.loadNumber, r.description, r.power, r.flc, r.nfb, r.contactor, r.tor, r.cable]),
+            theme: 'grid',
+            headStyles: { fontSize: 8, cellPadding: 1 },
+            bodyStyles: { fontSize: 7, cellPadding: 1 },
+            columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 40 } }
+        });
+        let finalY = doc.lastAutoTable.finalY || 50;
+        doc.text("Summary", 14, finalY + 10);
+        doc.autoTable({
+            startY: finalY + 15,
+            body: [
+                ['Total kVA', `${calculationResults.mainSupply.totalKVA.toFixed(2)} kVA`],
+                ['Selected Main Breaker', calculationResults.mainSupply.breaker.model],
+            ]
+        });
+        doc.save('panel_sizing_report.pdf');
+    }
+
+    window.onload = () => { addLoad(); };
+    </script>
+</body>
+</html>
